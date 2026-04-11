@@ -1,0 +1,275 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# ──────────────────────────────────────────────
+# CodeRabbit 配置 — Monolith 博客系统
+# 文档：https://docs.coderabbit.ai/guides/configure-coderabbit
+# ──────────────────────────────────────────────
+
+# 审查语言设为中文
+language: "zh-CN"
+
+# 语气：专业简洁，关注代码质量
+tone_instructions: >
+  请用简洁专业的中文回复，重点关注代码质量、类型安全和性能优化。
+  对于 UI 组件的改动，请注意响应式布局和双主题（暗色/亮色）兼容性。
+
+# 开启早期测试功能
+early_access: true
+
+# 免费层功能
+enable_free_tier: true
+
+# ──────────────────────────────────────────────
+# 审查设置
+# ──────────────────────────────────────────────
+reviews:
+  # 审查风格：chill（宽松反馈，不过于挑剔）
+  profile: "chill"
+
+  # 不自动 request changes（避免阻塞 CI）
+  request_changes_workflow: false
+
+  # 生成高层次摘要（写入 PR 描述）
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+
+  # 在 walkthrough 中也展示摘要
+  high_level_summary_in_walkthrough: true
+
+  # PR 变更文件摘要
+  changed_files_summary: true
+
+  # 生成序列图（便于理解 API 调用链路）
+  sequence_diagrams: true
+
+  # 代码审查工作量评估
+  estimate_code_review_effort: true
+
+  # 关联 Issue 评估
+  assess_linked_issues: true
+
+  # 关联 PR
+  related_prs: true
+
+  # 推荐标签
+  suggested_labels: true
+  auto_apply_labels: true
+
+  # 推荐审查者（个人项目暂时关闭）
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+
+  # 审查状态
+  review_status: true
+  commit_status: true
+  fail_commit_status: false
+
+  # Walkthrough 折叠
+  collapse_walkthrough: true
+
+  # 审查细节（忽略的文件列表等）
+  review_details: true
+
+  # 关闭彩蛋小诗和 fortune
+  poem: false
+  in_progress_fortune: false
+
+  # 为 AI Agent 生成修复提示
+  enable_prompt_for_ai_agents: true
+
+  # ── 标签规则 ──
+  labeling_instructions:
+    - label: "frontend"
+      instructions: "当 PR 包含 client/ 目录下的文件变更时应用此标签"
+    - label: "backend"
+      instructions: "当 PR 包含 server/ 目录下的文件变更时应用此标签"
+    - label: "docs"
+      instructions: "当 PR 仅包含 README.md、Wiki 或 .md 文件变更时应用此标签"
+    - label: "styles"
+      instructions: "当 PR 主要修改 CSS/样式文件（如 globals.css）或 UI 组件外观时应用此标签"
+    - label: "bug"
+      instructions: "当 PR 标题或描述包含 fix/bugfix/修复 关键词时应用此标签"
+    - label: "feature"
+      instructions: "当 PR 标题或描述包含 feat/feature/新增 关键词时应用此标签"
+
+  # ── 文件过滤 ──
+  path_filters:
+    # 排除构建产物和依赖
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/.wrangler/**"
+    - "!**/package-lock.json"
+    # 排除迁移文件（自动生成）
+    - "!server/src/db/migrations/**"
+
+  # ── 路径级审查指令 ──
+  path_instructions:
+    - path: "client/src/components/**"
+      instructions: >
+        这是 React 前端组件目录。审查时请关注：
+        1. 是否同时兼容暗色和亮色主题（检查 CSS 变量和 data-theme）
+        2. 响应式布局是否完整（移动端/平板/桌面端）
+        3. 无障碍访问（aria 标签、键盘导航）
+        4. 组件是否保持单一职责
+
+    - path: "client/src/pages/**"
+      instructions: >
+        页面级组件。审查时请关注：
+        1. 数据加载和错误处理是否完善
+        2. SEO 相关（页面标题、meta 标签）
+        3. 导航和路由是否正确
+
+    - path: "client/src/globals.css"
+      instructions: >
+        全局样式和 CSS 变量系统。审查时请关注：
+        1. [data-theme="light"] 和默认暗色主题的变量是否配对
+        2. OKLCH 色值的明度/色度是否合理
+        3. 是否有遗漏的选择器未覆盖亮色模式
+
+    - path: "server/src/storage/**"
+      instructions: >
+        存储适配器层（数据库 + 对象存储）。审查时请关注：
+        1. 接口实现是否完整（IDatabase / IObjectStorage）
+        2. SQL 注入防护（参数化查询）
+        3. 多后端（D1/Turso/PostgreSQL）行为一致性
+        4. 错误处理和边界情况
+
+    - path: "server/src/index.ts"
+      instructions: >
+        Hono Workers API 路由总入口。审查时请关注：
+        1. JWT 认证中间件是否正确保护管理接口
+        2. CORS 配置是否安全
+        3. 请求参数验证
+
+    - path: "client/functions/**"
+      instructions: >
+        Cloudflare Pages Functions（API 反向代理层）。审查时请关注：
+        1. 代理目标 URL 是否正确构建
+        2. 请求头的传递和清理
+        3. 错误响应处理
+
+  # ── 自动审查 ──
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    drafts: false
+    # 忽略 bot 的 PR
+    ignore_title_keywords:
+      - "WIP"
+      - "DO NOT MERGE"
+      - "wip"
+    base_branches: []
+
+  # ── Anti-Slop 检测 ──
+  slop_detection:
+    enabled: true
+
+  # ── Finishing Touches ──
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+    simplify:
+      enabled: true
+
+  # ── Pre-merge 检查 ──
+  pre_merge_checks:
+    title:
+      mode: "warning"
+      requirements: >
+        PR 标题应遵循 Conventional Commits 格式：
+        type(scope): description
+        类型包括：feat, fix, docs, style, refactor, perf, test, chore
+    description:
+      mode: "warning"
+    docstrings:
+      mode: "off"
+
+  # ── 工具配置 ──
+  tools:
+    # 启用与项目相关的 Lint 工具
+    biome:
+      enabled: true
+    eslint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    ast-grep:
+      essential_rules: true
+
+    # 安全扫描
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 120000
+
+    # 关闭不相关的语言工具
+    shellcheck:
+      enabled: false
+    ruff:
+      enabled: false
+    phpstan:
+      enabled: false
+    phpmd:
+      enabled: false
+    phpcs:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    swiftlint:
+      enabled: false
+    hadolint:
+      enabled: false
+    checkov:
+      enabled: false
+    tflint:
+      enabled: false
+    detekt:
+      enabled: false
+    flake8:
+      enabled: false
+    rubocop:
+      enabled: false
+    buf:
+      enabled: false
+    regal:
+      enabled: false
+    pmd:
+      enabled: false
+    clang:
+      enabled: false
+    cppcheck:
+      enabled: false
+    fortitudeLint:
+      enabled: false
+
+# ──────────────────────────────────────────────
+# 聊天设置（PR 中 @coderabbitai 交互）
+# ──────────────────────────────────────────────
+chat:
+  auto_reply: true
+
+# ──────────────────────────────────────────────
+# 知识库
+# ──────────────────────────────────────────────
+knowledge_base:
+  learnings:
+    scope: "auto"
+  issues:
+    scope: "auto"
+  jira:
+    project_keys: []
+  linear:
+    team_keys: []
+  pull_requests:
+    scope: "auto"
