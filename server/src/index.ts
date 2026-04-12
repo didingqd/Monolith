@@ -58,6 +58,16 @@ app.use("*", async (c, next) => {
   }
 });
 
+/* ── 健康检查端点 ──────────────────────────── */
+app.get("/api/health", async (c) => {
+  return c.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    dbProvider: c.env.DB_PROVIDER || "d1",
+    storageProvider: c.env.STORAGE_PROVIDER || "r2",
+    environment: "production"
+  });
+});
 /* ── 公开 API ──────────────────────────────── */
 
 // 获取文章列表（仅已发布）
