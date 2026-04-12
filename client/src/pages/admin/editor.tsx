@@ -230,11 +230,57 @@ export function AdminEditor() {
 
   const handleImageUpload = async (file: File) => {
     setUploading(true);
+    const placeholder = `![上传中... ${file.name}](uploading)`;
+    insertText(placeholder);
     try {
       const result = await uploadImage(file);
-      insertText(`![${file.name}](${result.url})`);
+      // 替换占位符为实际 URL
+      const editor = editorRef.current;
+      if (editor) {
+        const model = editor.getModel();
+        if (model) {
+          const fullText = model.getValue();
+          const idx = fullText.indexOf(placeholder);
+          if (idx !== -1) {
+            const before = fullText.substring(0, idx);
+            const startLine = (before.match(/\n/g) || []).length + 1;
+            const startCol = before.length - before.lastIndexOf("\n");
+            const endCol = startCol + placeholder.length;
+            editor.executeEdits("paste-image", [{
+              range: {
+                startLineNumber: startLine,
+                startColumn: startCol,
+                endLineNumber: startLine,
+                endColumn: endCol,
+              },
+              text: `![${file.name}](${result.url})`,
+            }]);
+          } else {
+            // 占位符未找到（可能被手动删除），直接插入
+            insertText(`![${file.name}](${result.url})`);
+          }
+        }
+      } else {
+        // fallback：直接替换 form 中的内容
+        setForm((prev) => ({
+          ...prev,
+          content: prev.content.replace(placeholder, `![${file.name}](${result.url})`),
+        }));
+      }
       showMsg("图片已上传", "success");
     } catch {
+      // 上传失败，移除占位符
+      const editor = editorRef.current;
+      if (editor) {
+        const model = editor.getModel();
+        if (model) {
+          const fullText = model.getValue();
+          const newText = fullText.replace(placeholder, "");
+          model.setValue(newText);
+        }
+      } else {
+        setForm((prev) => ({ ...prev, content: prev.content.replace(placeholder, "") }));
+      }
       showMsg("图片上传失败", "error");
     } finally {
       setUploading(false);
@@ -537,7 +583,35 @@ export function AdminEditor() {
               onChange={(val) => updateField("content", val || "")}
               theme="monolith-dark"
               beforeMount={handleEditorWillMount}
-              onMount={(editor) => { editorRef.current = editor; }}
+              onMount={(editor) => {
+                editorRef.current = editor;
+                // 监听 Monaco 编辑器的 paste 事件（处理粘贴图片）
+                const domNode = editor.getDomNode();
+                if (domNode) {
+                  domNode.addEventListener("paste", (e: Event) => {
+                    const ce = e as ClipboardEvent;
+                    const items = ce.clipboardData?.items;
+                    if (!items) return;
+                    for (const item of items) {
+                      if (item.type.startsWith("image/")) {
+                        ce.preventDefault();
+                        ce.stopPropagation();
+                        const file = item.getAsFile();
+                        if (file) handleImageUpload(file);
+                        return;
+                      }
+                    }
+                  });
+                  // 拖拽上传
+                  domNode.addEventListener("drop", (e: Event) => {
+                    const de = e as DragEvent;
+                    de.preventDefault();
+                    const file = de.dataTransfer?.files[0];
+                    if (file?.type.startsWith("image/")) handleImageUpload(file);
+                  });
+                  domNode.addEventListener("dragover", (e: Event) => { e.preventDefault(); });
+                }
+              }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -586,7 +660,8 @@ export function AdminEditor() {
           <span><kbd className="px-[4px] py-[1px] rounded border border-border/15 text-[9px]">Ctrl+S</kbd> 保存</span>
           <span><kbd className="px-[4px] py-[1px] rounded border border-border/15 text-[9px]">Ctrl+B</kbd> 粗体</span>
           <span><kbd className="px-[4px] py-[1px] rounded border border-border/15 text-[9px]">Ctrl+I</kbd> 斜体</span>
-          <span>拖拽/粘贴上传图片</span>
+          <span><kbd className="px-[4px] py-[1px] rounded border border-border/15 text-[9px]">Ctrl+V</kbd> 粘贴图片</span>
+          <span>拖拽上传图片</span>
         </div>
       )}
     </div>
