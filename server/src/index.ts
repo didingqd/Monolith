@@ -567,16 +567,22 @@ app.post("/api/admin/posts/:slug/versions/:id/restore", async (c) => {
   const db = c.get("db");
   const versionId = parseInt(idStr);
   if (isNaN(versionId)) return c.json({ error: "无效的快照 ID" }, 400);
+
+  // 恢复前先将当前状态建立一个快照，以防后续后悔（保留 Undo 能力）
+  await db.createPostVersion(slug);
+
   const post = await db.restorePostVersion(slug, versionId);
   if (!post) return c.json({ error: "恢复失败，版本或文章不存在" }, 400);
-  // 恢复后也可以自动创建一个新快照
-  await db.createPostVersion(slug);
+  
   return c.json({ success: true, post });
 });
 
 // 批量操作文章：发布 / 撤回发布 / 删除
 app.post("/api/admin/posts/batch", async (c) => {
   const { slugs, action } = await c.req.json<{ slugs: string[]; action: "publish" | "unpublish" | "delete" }>();
+  if (!["publish", "unpublish", "delete"].includes(action)) {
+    return c.json({ error: "非法的批处理操作" }, 400);
+  }
   if (!slugs || !Array.isArray(slugs) || slugs.length === 0) {
     return c.json({ error: "参数不正确" }, 400);
   }

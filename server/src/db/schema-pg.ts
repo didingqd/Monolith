@@ -4,7 +4,7 @@
    但使用 PostgreSQL 方言（serial, timestamp 等）
    ────────────────────────────────────────────── */
 
-import { pgTable, serial, text, boolean, integer, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, integer, timestamp, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 
 /* ── 文章表 ────────────────────────────────── */
 export const pgPosts = pgTable("posts", {
@@ -83,11 +83,15 @@ export const pgComments = pgTable("comments", {
 /* ── 表情反应表 ────────────────────────────── */
 export const pgReactions = pgTable("reactions", {
   id: serial("id").primaryKey(),
-  postSlug: text("post_slug").notNull(),
+  postSlug: text("post_slug")
+    .notNull()
+    .references(() => pgPosts.slug, { onDelete: "cascade" }),
   type: text("type").notNull(),
   ipHash: text("ip_hash").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  uniq: uniqueIndex("pg_reactions_post_type_ip_idx").on(table.postSlug, table.type, table.ipHash)
+}));
 
 /* ── 访客记录表 ────────────────────────────── */
 export const pgVisits = pgTable("visits", {

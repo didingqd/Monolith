@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 /* ── 文章表 ────────────────────────────────── */
@@ -82,13 +82,17 @@ export const comments = sqliteTable("comments", {
 /* ── 表情反应表 ────────────────────────────── */
 export const reactions = sqliteTable("reactions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  postSlug: text("post_slug").notNull(),
+  postSlug: text("post_slug")
+    .notNull()
+    .references(() => posts.slug, { onDelete: "cascade" }),
   type: text("type").notNull(), // like, heart, celebrate, think
   ipHash: text("ip_hash").notNull(),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(datetime('now'))`),
-});
+}, (table) => ({
+  uniq: uniqueIndex("reactions_post_type_ip_idx").on(table.postSlug, table.type, table.ipHash)
+}));
 
 /* ── 访客记录表 ────────────────────────────── */
 export const visits = sqliteTable("visits", {

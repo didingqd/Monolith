@@ -113,19 +113,39 @@ export class TursoAdapter implements IDatabase {
     await this.ensureViewCountColumn();
     await this.ensurePinnedColumn();
     await this.ensureCommentsTable();
+
+    await this.db.run(sql`CREATE TABLE IF NOT EXISTS post_versions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_slug TEXT NOT NULL REFERENCES posts(slug) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      excerpt TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+    await this.db.run(sql`CREATE TABLE IF NOT EXISTS reactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      post_slug TEXT NOT NULL REFERENCES posts(slug) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      ip_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(post_slug, type, ip_hash)
+    )`);
+    await this.db.run(sql`CREATE TABLE IF NOT EXISTS visits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      path TEXT NOT NULL,
+      country TEXT NOT NULL DEFAULT 'XX',
+      referer_domain TEXT NOT NULL DEFAULT '',
+      device_type TEXT NOT NULL DEFAULT 'desktop',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
   }
 
   private async ensurePinnedColumn(): Promise<void> {
-    try {
-      await this.db.run(sql`ALTER TABLE posts ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
-    } catch {
-      /* 字段已存在 */
-    }
-    try {
-      await this.db.run(sql`ALTER TABLE posts ADD COLUMN publish_at TEXT`);
-    } catch {
-      /* 字段已存在 */
-    }
+    try { await this.db.run(sql`ALTER TABLE posts ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`); } catch { /* 字段已存在 */ }
+    try { await this.db.run(sql`ALTER TABLE posts ADD COLUMN publish_at TEXT`); } catch { /* 字段已存在 */ }
+    try { await this.db.run(sql`ALTER TABLE posts ADD COLUMN series_slug TEXT`); } catch {}
+    try { await this.db.run(sql`ALTER TABLE posts ADD COLUMN category TEXT DEFAULT ''`); } catch {}
+    try { await this.db.run(sql`ALTER TABLE posts ADD COLUMN series_order INTEGER DEFAULT 0`); } catch {}
   }
 
   private async ensureCommentsTable(): Promise<void> {
@@ -876,14 +896,14 @@ export class TursoAdapter implements IDatabase {
     const rows = await this.db
       .select({ slug: posts.slug, title: posts.title, seriesOrder: posts.seriesOrder })
       .from(posts)
-      .where(sql`${posts.seriesSlug} = ${seriesSlug} AND ${posts.published} = 1`)
+      .where(sql`${posts.seriesSlug} = ${seriesSlug} AND ${posts.published} = 1 AND (${posts.publishAt} IS NULL OR ${posts.publishAt} <= datetime('now'))`)
       .orderBy(posts.seriesOrder);
     return rows.map(r => ({ slug: r.slug, title: r.title, seriesOrder: r.seriesOrder ?? 0 }));
   }
 
   async getCategories(): Promise<{ name: string; count: number }[]> {
     const result = await this.db.run(
-      sql`SELECT category as name, COUNT(*) as count FROM posts WHERE published = 1 AND category != '' AND category IS NOT NULL GROUP BY category ORDER BY count DESC`
+      sql`SELECT category as name, COUNT(*) as count FROM posts WHERE published = 1 AND (publish_at IS NULL OR publish_at <= datetime('now')) AND category != '' AND category IS NOT NULL GROUP BY category ORDER BY count DESC`
     );
     type Row = Record<string, unknown>;
     return (result.rows as unknown as Row[] || []).map(r => ({ name: r.name as string, count: r.count as number }));
@@ -937,18 +957,21 @@ export class TursoAdapter implements IDatabase {
     });
   }
 
-  async getAnalytics(days: number) {
+  async getAnalytics(daysInput: number) {
     await this.db.run(sql`CREATE TABLE IF NOT EXISTS visits (
       id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL,
       country TEXT NOT NULL DEFAULT 'XX', referer_domain TEXT NOT NULL DEFAULT '',
       device_type TEXT NOT NULL DEFAULT 'desktop', created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`);
-    const since = `datetime('now', '-${days} days')`;
-    const byDay = await this.db.run(sql`SELECT DATE(created_at) as date, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY DATE(created_at) ORDER BY date`);
-    const byCountry = await this.db.run(sql`SELECT country, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY country ORDER BY count DESC LIMIT 10`);
-    const byReferer = await this.db.run(sql`SELECT referer_domain as referer, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} AND referer_domain != '' GROUP BY referer_domain ORDER BY count DESC LIMIT 10`);
-    const byDevice = await this.db.run(sql`SELECT device_type as device, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY device_type ORDER BY count DESC`);
-    const byPage = await this.db.run(sql`SELECT path, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY path ORDER BY count DESC LIMIT 10`);
+    let days = Math.max(0, parseInt(String(daysInput), 10));
+    if (isNaN(days)) days = 7;
+    const sinceMod = `-${days} days`;
+    
+    const byDay = await this.db.run(sql`SELECT DATE(created_at) as date, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY DATE(created_at) ORDER BY date`);
+    const byCountry = await this.db.run(sql`SELECT country, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY country ORDER BY count DESC LIMIT 10`);
+    const byReferer = await this.db.run(sql`SELECT referer_domain as referer, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) AND referer_domain != '' GROUP BY referer_domain ORDER BY count DESC LIMIT 10`);
+    const byDevice = await this.db.run(sql`SELECT device_type as device, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY device_type ORDER BY count DESC`);
+    const byPage = await this.db.run(sql`SELECT path, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY path ORDER BY count DESC LIMIT 10`);
     type Row = Record<string, unknown>;
     return {
       visitsByDay: (byDay.rows as unknown as Row[] || []).map(r => ({ date: r.date as string, count: r.count as number })),

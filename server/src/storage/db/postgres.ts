@@ -59,6 +59,15 @@ export class PostgresAdapter implements IDatabase {
       ALTER TABLE posts ADD COLUMN IF NOT EXISTS publish_at TIMESTAMPTZ
     `.catch(() => {});
     await this.client`
+      ALTER TABLE posts ADD COLUMN IF NOT EXISTS series_slug TEXT
+    `.catch(() => {});
+    await this.client`
+      ALTER TABLE posts ADD COLUMN IF NOT EXISTS category TEXT DEFAULT ''
+    `.catch(() => {});
+    await this.client`
+      ALTER TABLE posts ADD COLUMN IF NOT EXISTS series_order INTEGER DEFAULT 0
+    `.catch(() => {});
+    await this.client`
       CREATE TABLE IF NOT EXISTS tags (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL UNIQUE
@@ -90,7 +99,6 @@ export class PostgresAdapter implements IDatabase {
         value TEXT NOT NULL
       )
     `;
-    await this.client`
       CREATE TABLE IF NOT EXISTS comments (
         id SERIAL PRIMARY KEY,
         post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
@@ -98,6 +106,36 @@ export class PostgresAdapter implements IDatabase {
         author_email TEXT NOT NULL DEFAULT '',
         content TEXT NOT NULL,
         approved BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await this.client`
+      CREATE TABLE IF NOT EXISTS post_versions (
+        id SERIAL PRIMARY KEY,
+        post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        excerpt TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await this.client`
+      CREATE TABLE IF NOT EXISTS reactions (
+        id SERIAL PRIMARY KEY,
+        post_slug TEXT NOT NULL REFERENCES posts(slug) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        ip_hash TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(post_slug, type, ip_hash)
+      )
+    `;
+    await this.client`
+      CREATE TABLE IF NOT EXISTS visits (
+        id SERIAL PRIMARY KEY,
+        path TEXT NOT NULL,
+        country TEXT NOT NULL DEFAULT 'XX',
+        referer_domain TEXT NOT NULL DEFAULT '',
+        device_type TEXT NOT NULL DEFAULT 'desktop',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `;
@@ -884,7 +922,7 @@ export class PostgresAdapter implements IDatabase {
   async getSeriesPosts(seriesSlug: string): Promise<{ slug: string; title: string; seriesOrder: number }[]> {
     const rows = await this.client`
       SELECT slug, title, series_order FROM posts
-      WHERE series_slug = ${seriesSlug} AND published = true
+      WHERE series_slug = ${seriesSlug} AND published = true AND (publish_at IS NULL OR publish_at <= NOW())
       ORDER BY series_order ASC
     `;
     return rows.map(r => ({ slug: r.slug as string, title: r.title as string, seriesOrder: (r.series_order as number) ?? 0 }));
@@ -893,13 +931,14 @@ export class PostgresAdapter implements IDatabase {
   async getCategories(): Promise<{ name: string; count: number }[]> {
     const rows = await this.client`
       SELECT category as name, COUNT(*)::int as count FROM posts
-      WHERE published = true AND category != '' AND category IS NOT NULL
+      WHERE published = true AND (publish_at IS NULL OR publish_at <= NOW()) AND category != '' AND category IS NOT NULL
       GROUP BY category ORDER BY count DESC
     `;
     return rows.map(r => ({ name: r.name as string, count: r.count as number }));
   }
 
   async getReactions(postSlug: string): Promise<Record<string, number>> {
+    await this.ensureCoreTables();
     const rows = await this.client`
       SELECT type, COUNT(*)::int as count FROM reactions
       WHERE post_slug = ${postSlug}
@@ -950,6 +989,7 @@ export class PostgresAdapter implements IDatabase {
   }
 
   async getAnalytics(days: number) {
+    await this.ensureCoreTables();
     await this.client`
       CREATE TABLE IF NOT EXISTS visits (
         id SERIAL PRIMARY KEY, path TEXT NOT NULL,

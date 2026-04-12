@@ -888,14 +888,14 @@ export class D1Adapter implements IDatabase {
     const rows = await this.db
       .select({ slug: posts.slug, title: posts.title, seriesOrder: posts.seriesOrder })
       .from(posts)
-      .where(sql`${posts.seriesSlug} = ${seriesSlug} AND ${posts.published} = 1`)
+      .where(sql`${posts.seriesSlug} = ${seriesSlug} AND ${posts.published} = 1 AND (${posts.publishAt} IS NULL OR ${posts.publishAt} <= datetime('now'))`)
       .orderBy(posts.seriesOrder);
     return rows.map(r => ({ slug: r.slug, title: r.title, seriesOrder: r.seriesOrder ?? 0 }));
   }
 
   async getCategories(): Promise<{ name: string; count: number }[]> {
     const result = await this.db.run(
-      sql`SELECT category as name, COUNT(*) as count FROM posts WHERE published = 1 AND category != '' AND category IS NOT NULL GROUP BY category ORDER BY count DESC`
+      sql`SELECT category as name, COUNT(*) as count FROM posts WHERE published = 1 AND (publish_at IS NULL OR publish_at <= datetime('now')) AND category != '' AND category IS NOT NULL GROUP BY category ORDER BY count DESC`
     );
     type Row = Record<string, unknown>;
     return (result.results as Row[] || []).map(r => ({ name: r.name as string, count: r.count as number }));
@@ -962,24 +962,26 @@ export class D1Adapter implements IDatabase {
     });
   }
 
-  async getAnalytics(days: number) {
+  async getAnalytics(daysInput: number) {
     await this.ensureVisitsTable();
-    const since = `datetime('now', '-${days} days')`;
+    let days = Math.max(0, parseInt(String(daysInput), 10));
+    if (isNaN(days)) days = 7;
+    const sinceMod = `-${days} days`;
 
     const byDay = await this.db.run(
-      sql`SELECT DATE(created_at) as date, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY DATE(created_at) ORDER BY date`
+      sql`SELECT DATE(created_at) as date, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY DATE(created_at) ORDER BY date`
     );
     const byCountry = await this.db.run(
-      sql`SELECT country, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY country ORDER BY count DESC LIMIT 10`
+      sql`SELECT country, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY country ORDER BY count DESC LIMIT 10`
     );
     const byReferer = await this.db.run(
-      sql`SELECT referer_domain as referer, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} AND referer_domain != '' GROUP BY referer_domain ORDER BY count DESC LIMIT 10`
+      sql`SELECT referer_domain as referer, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) AND referer_domain != '' GROUP BY referer_domain ORDER BY count DESC LIMIT 10`
     );
     const byDevice = await this.db.run(
-      sql`SELECT device_type as device, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY device_type ORDER BY count DESC`
+      sql`SELECT device_type as device, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY device_type ORDER BY count DESC`
     );
     const byPage = await this.db.run(
-      sql`SELECT path, COUNT(*) as count FROM visits WHERE created_at >= ${sql.raw(since)} GROUP BY path ORDER BY count DESC LIMIT 10`
+      sql`SELECT path, COUNT(*) as count FROM visits WHERE created_at >= datetime('now', ${sinceMod}) GROUP BY path ORDER BY count DESC LIMIT 10`
     );
 
     type Row = Record<string, unknown>;

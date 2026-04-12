@@ -16,6 +16,7 @@ export function PostReactions({ slug }: PostReactionsProps) {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [activeTypes, setActiveTypes] = useState<Set<string>>(new Set());
   const [animating, setAnimating] = useState<string | null>(null);
+  const [inFlight, setInFlight] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchReactions(slug).then(setCounts);
@@ -27,6 +28,10 @@ export function PostReactions({ slug }: PostReactionsProps) {
   }, [slug]);
 
   const handleReaction = async (type: string) => {
+    if (inFlight.has(type)) return;
+    if (!REACTION_TYPES.some(r => r.type === type)) return;
+
+    setInFlight(prev => new Set(prev).add(type));
     setAnimating(type);
     setTimeout(() => setAnimating(null), 600);
 
@@ -47,10 +52,16 @@ export function PostReactions({ slug }: PostReactionsProps) {
       });
     } catch {
       /* 静默 */
+    } finally {
+      setInFlight((prev) => {
+        const next = new Set(prev);
+        next.delete(type);
+        return next;
+      });
     }
   };
 
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const total = REACTION_TYPES.reduce((acc, { type }) => acc + (counts[type] || 0), 0);
 
   return (
     <div className="post-reactions">
@@ -63,6 +74,9 @@ export function PostReactions({ slug }: PostReactionsProps) {
             key={type}
             onClick={() => handleReaction(type)}
             title={label}
+            aria-label={label}
+            aria-pressed={activeTypes.has(type)}
+            disabled={inFlight.has(type)}
             className={`post-reactions__btn ${activeTypes.has(type) ? "post-reactions__btn--active" : ""} ${animating === type ? "post-reactions__btn--animate" : ""}`}
           >
             <span className="post-reactions__emoji">{emoji}</span>
