@@ -395,13 +395,15 @@
 
 /* 行内代码 */
 .prose-monolith code:not(pre code) {
-  padding: 2px 6px;
+  padding: 3px 8px;
+  margin: 0 3px;
   font-size: 13px;
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
   background: oklch(1 0 0 / 6%);
   border: 1px solid oklch(1 0 0 / 8%);
-  border-radius: 4px;
+  border-radius: 5px;
   color: oklch(0.85 0.06 220);
+  word-break: break-word;
 }
 
 /* 代码块 */
