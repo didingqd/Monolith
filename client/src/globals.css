@@ -292,15 +292,16 @@
    ───────────────────────────────────────────── */
 .prose-monolith {
   font-size: 15px;
-  line-height: 1.8;
-  letter-spacing: 0;
+  line-height: 1.9;
+  letter-spacing: 0.012em;
   color: oklch(0.85 0 0);
+  word-spacing: 0.02em;
 }
 
 /* 标题 */
 .prose-monolith h2 {
-  margin-top: 40px;
-  margin-bottom: 16px;
+  margin-top: 48px;
+  margin-bottom: 18px;
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -309,8 +310,8 @@
 }
 
 .prose-monolith h3 {
-  margin-top: 32px;
-  margin-bottom: 12px;
+  margin-top: 36px;
+  margin-bottom: 14px;
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0;
@@ -329,7 +330,7 @@
 
 /* 段落 */
 .prose-monolith p {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 /* 链接 */
@@ -355,8 +356,8 @@
 /* 列表 */
 .prose-monolith ul,
 .prose-monolith ol {
-  margin-bottom: 16px;
-  padding-left: 20px;
+  margin-bottom: 20px;
+  padding-left: 22px;
 }
 
 .prose-monolith ul {
@@ -368,8 +369,9 @@
 }
 
 .prose-monolith li {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   padding-left: 4px;
+  line-height: 1.8;
 }
 
 .prose-monolith li::marker {
@@ -378,8 +380,8 @@
 
 /* 引用块 */
 .prose-monolith blockquote {
-  margin: 24px 0;
-  padding: 16px 20px;
+  margin: 28px 0;
+  padding: 16px 24px;
   border-left: 3px solid oklch(0.5 0.1 220 / 50%);
   background: oklch(1 0 0 / 4%);
   border-radius: 0 8px 8px 0;
@@ -404,7 +406,7 @@
 
 /* 代码块 */
 .prose-monolith pre {
-  margin: 20px 0;
+  margin: 24px 0;
   padding: 16px 20px;
   border-radius: 8px;
   background: oklch(0.15 0.006 220) !important;
@@ -412,6 +414,7 @@
   overflow-x: auto;
   font-size: 13px;
   line-height: 1.85;
+  letter-spacing: 0;
   font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 
@@ -421,6 +424,45 @@
   border: none;
   font-size: inherit;
   color: oklch(0.85 0 0);
+}
+
+/* 代码块包裹容器间距（统一管理 margin，pre 自身 margin 被 has-header 覆盖为 0） */
+.prose-monolith .code-block-wrapper {
+  margin: 24px 0;
+}
+
+.prose-monolith .code-block-wrapper pre {
+  margin-top: 0;
+}
+
+/* ── 块间衔接优化 ── */
+/* 标题后紧接代码块/表格/引用，缩小间距避免割裂感 */
+.prose-monolith h2 + .code-block-wrapper,
+.prose-monolith h3 + .code-block-wrapper,
+.prose-monolith h4 + .code-block-wrapper {
+  margin-top: 16px;
+}
+
+.prose-monolith h2 + .table-wrapper,
+.prose-monolith h3 + .table-wrapper,
+.prose-monolith h4 + .table-wrapper {
+  margin-top: 16px;
+}
+
+.prose-monolith h2 + blockquote,
+.prose-monolith h3 + blockquote,
+.prose-monolith h4 + blockquote {
+  margin-top: 14px;
+}
+
+/* 连续代码块之间缩小间距 */
+.prose-monolith .code-block-wrapper + .code-block-wrapper {
+  margin-top: 16px;
+}
+
+/* 段落最后一个元素不要底部间距（避免与下一个块元素双重空白） */
+.prose-monolith p:last-child {
+  margin-bottom: 0;
 }
 
 /* 分隔线 */
@@ -433,7 +475,7 @@
 /* 表格响应式包裹 */
 .prose-monolith .table-wrapper {
   overflow-x: auto;
-  margin: 20px 0;
+  margin: 28px 0;
   border-radius: 8px;
   border: 1px solid oklch(1 0 0 / 6%);
 }
