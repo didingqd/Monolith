@@ -60,9 +60,13 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, "");        // 去除首尾连字符
 }
 
-renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
-  const id = slugify(text);
-  return `<h${depth} id="${id}">${text}</h${depth}>`;
+renderer.heading = function ({ text, depth, tokens }: { text: string; depth: number; tokens?: any[] }) {
+  const id = slugify(text); // slugify 用原始纯文本生成锚点 id
+  // 用 parseInline 解析 inline 格式（粗体、代码等）为 HTML
+  const html = tokens && this.parser
+    ? this.parser.parseInline(tokens)
+    : text;
+  return `<h${depth} id="${id}">${html}</h${depth}>`;
 };
 
 // 代码块：高亮 + 语言标签 + 复制按钮 + 行号 + 标题 + 行高亮
@@ -237,11 +241,14 @@ renderer.table = function (token: any) {
   return `<div class="table-wrapper"><table><thead>${headerHtml}</thead><tbody>${bodyHtml}</tbody></table></div>`;
 };
 
-// 链接：外部链接自动 target="_blank"
-renderer.link = (token: any) => {
+// 链接：外部链接自动 target="_blank"（兼容 marked v15 token 结构）
+renderer.link = function (token: any) {
   const href = token.href || '';
   const title = token.title || '';
-  const text = token.text || '';
+  // 用 parseInline 解析链接文本中的 inline 格式
+  const text = token.tokens && this.parser
+    ? this.parser.parseInline(token.tokens)
+    : (token.text || '');
   const isExternal = href.startsWith("http");
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
   const externalAttrs = isExternal ? ' target="_blank" rel="noopener noreferrer"' : "";
