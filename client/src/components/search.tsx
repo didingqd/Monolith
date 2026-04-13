@@ -86,15 +86,20 @@ export function SearchOverlay() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === "Enter" && results[selectedIndex]) {
-      setOpen(false);
-      window.location.href = `/posts/${results[selectedIndex].slug}`;
+    } else if (e.key === "Enter") {
+      // eslint-disable-next-line security/detect-object-injection
+      const selected = results[selectedIndex];
+      if (selected) {
+        setOpen(false);
+        window.location.href = `/posts/${selected.slug}`;
+      }
     }
   };
 
   // 高亮关键词
   const highlightText = (text: string, q: string) => {
     if (!q.trim()) return text;
+    // eslint-disable-next-line security/detect-non-literal-regexp
     const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
     const parts = text.split(regex);
     return parts.map((part, i) =>

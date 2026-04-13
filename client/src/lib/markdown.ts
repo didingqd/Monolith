@@ -173,7 +173,8 @@ renderer.image = ({ href, title, text }: { href: string; title?: string | null; 
   const titleAttr = title ? ` title="${escapeHtml(title)}"` : "";
   
   // 1. 直链视频支持
-  if (href.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)) {
+  // eslint-disable-next-line security/detect-unsafe-regex
+  if (href.match(/\.(mp4|webm|ogg|mov)(?:\?.*)?$/i)) {
     return `<figure class="md-figure md-video">
       <video src="${href}" controls playsinline preload="metadata" class="w-full rounded-lg border border-border/20 shadow-lg bg-black/5"></video>
       ${text ? `<figcaption>${escapeHtml(text)}</figcaption>` : ""}

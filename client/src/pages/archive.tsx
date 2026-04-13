@@ -18,13 +18,13 @@ export function ArchivePage() {
     fetchPosts().then(setPosts).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  const grouped: Record<string, PostMeta[]> = {};
+  const grouped = new Map<string, PostMeta[]>();
   for (const post of posts) {
     const year = new Date(post.createdAt).getFullYear().toString();
-    if (!grouped[year]) grouped[year] = [];
-    grouped[year].push(post);
+    if (!grouped.has(year)) grouped.set(year, []);
+    grouped.get(year)!.push(post);
   }
-  const years = Object.keys(grouped).sort((a, b) => Number(b) - Number(a));
+  const years = Array.from(grouped.keys()).sort((a, b) => Number(b) - Number(a));
 
   return (
     <div className="mx-auto w-full max-w-[720px] py-[32px] lg:py-[56px] px-[16px] lg:px-0">
@@ -42,7 +42,7 @@ export function ArchivePage() {
           <AnimateIn key={year} delay={`delay-${Math.min(yi, 4)}`} className="mb-[32px]">
             <h2 className="mb-[16px] text-[20px] font-semibold tracking-[-0.01em] text-muted-foreground/40">{year}</h2>
             <div className="flex flex-col gap-[4px]">
-              {grouped[year].map((post) => (
+              {grouped.get(year)!.map((post) => (
                 <Link key={post.slug} href={`/posts/${post.slug}`} className="group flex items-baseline gap-[12px] rounded-md py-[10px] px-[12px] -mx-[12px] transition-all duration-200 hover:bg-accent/30 hover:translate-x-[4px]">
                   <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground/40 w-[90px]">{formatDate(post.createdAt).replace(/\d{4}年/, "")}</span>
                   <span className="text-[15px] text-foreground transition-colors duration-200 group-hover:text-foreground/80">{post.title}</span>

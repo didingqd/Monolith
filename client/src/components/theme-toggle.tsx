@@ -48,12 +48,12 @@ export function ThemeToggle() {
 
   const icons = { dark: Moon, light: Sun, system: Monitor };
   const labels = { dark: "暗色", light: "亮色", system: "跟随系统" };
-  const Icon = icons[theme];
+  const Icon = icons[theme as keyof typeof icons] || Monitor;
 
   return (
     <button
       onClick={cycle}
-      title={`当前：${labels[theme]}，点击切换`}
+      title={`当前：${labels[theme as keyof typeof labels]}，点击切换`}
       className="inline-flex items-center justify-center h-[32px] w-[32px] rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-accent/30 transition-all duration-200"
       aria-label="切换主题"
     >

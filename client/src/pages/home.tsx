@@ -130,12 +130,13 @@ export function HomePage() {
   }, []);
 
   // 计算标签频次并按热度排序
-  const tagCounts = posts.flatMap((p) => p.tags).reduce<Record<string, number>>((acc, t) => {
-    if (t === "__proto__" || t === "constructor") return acc;
-    acc[t] = Object.prototype.hasOwnProperty.call(acc, t) ? acc[t] + 1 : 1;
-    return acc;
-  }, {});
-  const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  const tagCounts = new Map<string, number>();
+  for (const p of posts) {
+    for (const t of p.tags) {
+      tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+    }
+  }
+  const sortedTags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1]);
   const maxTagCount = sortedTags.length > 0 ? sortedTags[0][1] : 1;
 
   const authorName = settings?.author_name || "Monolith";
