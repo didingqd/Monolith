@@ -48,22 +48,38 @@ export function PostPage() {
 
   useEffect(() => {
     if (!params.slug) return;
+    
+    // 路由跳转时如果不带锚点，强制回到顶部
+    if (!window.location.hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+    
+    setLoading(true);
     fetchPost(params.slug)
       .then(setPost)
       .catch(() => setError("文章未找到"))
       .finally(() => setLoading(false));
   }, [params.slug]);
 
-  // 提取标题列表（用于 TOC）
-  const headings = useMemo(() => {
-    if (!post) return [];
-    return extractHeadings(post.content);
-  }, [post]);
+  // 提取标题列表（用于 TOC）和 Markdown 渲染
+  const [headings, setHeadings] = useState<{ id: string; text: string; level: number }[]>([]);
+  const [htmlContent, setHtmlContent] = useState("");
 
-  // 渲染 Markdown HTML
-  const htmlContent = useMemo(() => {
-    if (!post) return "";
-    return renderMarkdown(post.content);
+  useEffect(() => {
+    if (!post) {
+      setHeadings([]);
+      setHtmlContent("");
+      return;
+    }
+    
+    // 利用 setTimeout 将密集的 Markdown 解析与语法高亮推迟到下一个事件循环
+    // 从而让浏览器能立刻绘制页面基本框架和动画，大幅提升用户感知速度
+    const timer = setTimeout(() => {
+      setHeadings(extractHeadings(post.content));
+      setHtmlContent(renderMarkdown(post.content));
+    }, 10);
+    
+    return () => clearTimeout(timer);
   }, [post]);
 
   // 图片渐进淡入（Intersection Observer）
