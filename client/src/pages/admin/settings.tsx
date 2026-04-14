@@ -37,13 +37,12 @@ const defaultSettings: Settings = {
   custom_footer: "",
 };
 
-type TabId = "general" | "profile" | "social" | "advanced" | "data";
+type TabId = "general" | "profile" | "social" | "advanced";
 const TABS = [
   { id: "general", label: "常规设置", icon: Globe },
   { id: "profile", label: "个人资料", icon: User },
   { id: "social", label: "社交与订阅", icon: Link2 },
   { id: "advanced", label: "扩展与注入", icon: Code },
-  { id: "data", label: "数据管理", icon: HardDrive },
 ];
 
 export function AdminSettings() {
@@ -302,37 +301,7 @@ export function AdminSettings() {
             </div>
           )}
 
-          {/* TAB: 数据管理 */}
-          {activeTab === "data" && (
-            <div className="space-y-[24px] animate-fade-in">
-              <div>
-                <h2 className="text-[16px] font-semibold mb-[4px]">导入与导出</h2>
-                <p className="text-[12px] text-muted-foreground/50 mb-[16px]">管理站点的核心数据集。对于完整的文件系统备份，请前往「备份」界面。</p>
-                <div className="rounded-xl border border-border/15 bg-card/5 p-[20px] sm:p-[24px]">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-[16px]">
-                    <div>
-                      <p className="text-[14px] font-medium text-foreground">文章元数据快照</p>
-                      <p className="text-[12px] text-muted-foreground/40 mt-[4px]">导出所有的文章内容及其配置属性为单份 JSON，方便迁移与分析。</p>
-                    </div>
-                    <button onClick={async () => {
-                      const res = await fetch("/api/admin/posts", { headers: { Authorization: `Bearer ${getToken()}` } });
-                      const p = await res.json();
-                      const blob = new Blob([JSON.stringify(p, null, 2)], { type: "application/json" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url; a.download = `monolith-export-${new Date().toISOString().slice(0, 10)}.json`; a.click();
-                      URL.revokeObjectURL(url);
-                      showMsg("导出完成", "success");
-                    }} className="shrink-0 flex items-center gap-[6px] h-[34px] px-[14px] rounded-lg border border-border/25 bg-background shadow-sm text-[12px] text-foreground hover:bg-card/80 hover:border-border/40 transition-all">
-                      <Download className="h-[12px] w-[12px]" /> 导出为 JSON
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
+          {/* 底部 */}        </div>
       </div>
     </div>
   );
