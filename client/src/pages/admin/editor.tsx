@@ -14,23 +14,23 @@ function handleEditorWillMount(monaco: Monaco) {
     inherit: true,
     rules: [
       // ─── Markdown 专属 ───
-      { token: "markup.heading", foreground: "e0a84c", fontStyle: "bold" },       // 标题 → 琥珀金
-      { token: "markup.bold", foreground: "e8e4df", fontStyle: "bold" },          // 粗体 → 暖白
-      { token: "markup.italic", foreground: "d4a76a", fontStyle: "italic" },      // 斜体 → 淡金
-      { token: "string.link", foreground: "6fb3d2" },                             // 链接 → 柔蓝
-      { token: "markup.underline.link", foreground: "6fb3d2" },                   // 链接 URL
-      { token: "markup.inline.raw", foreground: "7ec699" },                       // 行内代码 → 翡翠绿
-      { token: "markup.fenced_code", foreground: "7ec699" },                      // 代码块 → 翡翠绿
-      { token: "markup.list", foreground: "e0a84c" },                             // 列表标记 → 琥珀金
-      { token: "markup.quote", foreground: "8a8a8a", fontStyle: "italic" },       // 引用 → 暖灰斜体
+      { token: "markup.heading", foreground: "e0a84c", fontStyle: "bold" },
+      { token: "markup.bold", foreground: "EBEBEB", fontStyle: "bold" },
+      { token: "markup.italic", foreground: "d4a76a", fontStyle: "italic" },
+      { token: "string.link", foreground: "7ec8e6" },
+      { token: "markup.underline.link", foreground: "7ec8e6" },
+      { token: "markup.inline.raw", foreground: "8ed8aa" },
+      { token: "markup.fenced_code", foreground: "8ed8aa" },
+      { token: "markup.list", foreground: "e0a84c" },
+      { token: "markup.quote", foreground: "9a9a9a", fontStyle: "italic" },
       // ─── 通用 ───
-      { token: "comment", foreground: "6a6a6a", fontStyle: "italic" },            // 注释 → 中灰
-      { token: "keyword", foreground: "e0a84c" },                                 // 关键字 → 琥珀金
-      { token: "string", foreground: "7ec699" },                                  // 字符串 → 翡翠绿
-      { token: "number", foreground: "d4a76a" },                                  // 数字 → 淡金
-      { token: "type", foreground: "6fb3d2" },                                    // 类型 → 柔蓝
-      { token: "variable", foreground: "ccc8c2" },                                // 变量 → 暖白
-      { token: "operator", foreground: "a0a0a0" },                                // 运算符 → 浅灰
+      { token: "comment", foreground: "7a7a7a", fontStyle: "italic" },
+      { token: "keyword", foreground: "e0a84c" },
+      { token: "string", foreground: "8ed8aa" },
+      { token: "number", foreground: "d4a76a" },
+      { token: "type", foreground: "7ec8e6" },
+      { token: "variable", foreground: "d8d4ce" },
+      { token: "operator", foreground: "b0b0b0" },
     ],
     colors: {
       // 背景：中性深灰（不带蓝紫调）
