@@ -11,7 +11,7 @@ BLOG_NAME = "Monolith"
 [[d1_databases]]
 binding = "DB"
 database_name = "monolith-db"
-database_id = "260856eb-760d-4a36-aad7-31f8aa1291e9"
+database_id = "d7803324-33ef-4007-9c61-1bdb749d797d"
 migrations_dir = "src/migrations"
 
 # R2 存储桶绑定
@@ -21,4 +21,4 @@ bucket_name = "monolith-assets"
 
 # 定时触发器 (每 1 分钟执行一次)
 [triggers]
-crons = ["* * * * *"]
+crons = ["0 */1 * * *"]
