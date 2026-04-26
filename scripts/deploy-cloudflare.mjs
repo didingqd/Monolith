@@ -140,6 +140,31 @@ function checkPrerequisites() {
     console.error("\n详见 README 「☁️ 部署 → 预检清单」。");
     process.exit(1);
   }
+
+  // Windows 环境卫生提示（非阻断，仅警告）
+  if (IS_WIN) {
+    const autocrlfProbe = spawnSync("git", ["config", "--get", "core.autocrlf"], {
+      cwd: projectRoot,
+      encoding: "utf8",
+      shell: SHELL,
+    });
+    const autocrlf = (autocrlfProbe.stdout || "").trim();
+    if (autocrlf === "true") {
+      console.warn(
+        "[warn] git core.autocrlf=true 检测到——可能把 wrangler.toml/*.mjs 改成 CRLF，wrangler 解析 toml 偶发报错。",
+      );
+      console.warn("[hint] 建议执行：git config --global core.autocrlf input 后重新 clone 仓库。");
+    }
+    // 覆盖个人版 (OneDrive)、企业版 (OneDrive - Contoso)、历史变体 (OneDriveCommercial / OneDrive-Personal)
+    // 必须以路径分隔符或路径根开始，紧跟 onedrive，后接空格/连字符/分隔符/词尾，或紧跟字母（Commercial 等）
+    const oneDrivePattern = /(?:^|[\\/])onedrive(?:[\s\-\\/]|[A-Za-z]|$)/i;
+    if (oneDrivePattern.test(projectRoot)) {
+      console.warn(
+        "[warn] 仓库位于 OneDrive 同步目录——OneDrive 实时同步会与 Node fs.watch 抢锁，构建偶发卡死。",
+      );
+      console.warn("[hint] 建议把仓库迁移到 C:\\dev\\Monolith 等独立本地目录后重试。");
+    }
+  }
 }
 
 function detectWorkersUrl(output) {
