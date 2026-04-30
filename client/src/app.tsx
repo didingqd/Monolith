@@ -7,6 +7,7 @@ import { SearchOverlay } from "@/components/search";
 import { ProtectedRoute } from "@/components/protected-route";
 import { AdminLayout } from "@/components/admin-layout";
 import { CookieConsent, getCookieConsent } from "@/components/cookie-consent";
+import { trackPageview, bindUnloadTracker } from "@/lib/analytics";
 
 // 代码分割 (Code Splitting)
 const HomePage = lazy(() => import("@/pages/home").then((m) => ({ default: m.HomePage })));
@@ -22,6 +23,7 @@ const AdminPages = lazy(() => import("@/pages/admin/pages").then((m) => ({ defau
 const AdminComments = lazy(() => import("@/pages/admin/comments").then((m) => ({ default: m.AdminComments })));
 const AdminMedia = lazy(() => import("@/pages/admin/media").then((m) => ({ default: m.AdminMedia })));
 const AdminAnalytics = lazy(() => import("@/pages/admin/analytics").then((m) => ({ default: m.AdminAnalytics })));
+const AdminSeo = lazy(() => import("@/pages/admin/seo").then((m) => ({ default: m.AdminSeo })));
 const PrivacyPage = lazy(() => import("@/pages/privacy").then((m) => ({ default: m.PrivacyPage })));
 const DynamicPage = lazy(() => import("@/pages/dynamic-page").then((m) => ({ default: m.DynamicPage })));
 const NotFoundPage = lazy(() => import("@/pages/not-found").then((m) => ({ default: m.NotFoundPage })));
@@ -56,6 +58,12 @@ function matchesPathPrefix(pathname: string, prefix: string) {
 
 export function App() {
   const [location] = useLocation();
+
+  // 访客埋点：路由变化触发 pageview，页面卸载触发 duration 上报
+  useEffect(() => {
+    bindUnloadTracker();
+    trackPageview(location);
+  }, [location]);
 
   // 路由判断逻辑
   const isAdminRoot = matchesPathPrefix(location, "/admin");
@@ -165,6 +173,7 @@ export function App() {
                 <Route path="/admin/comments"><AdminComments /></Route>
                 <Route path="/admin/media"><AdminMedia /></Route>
                 <Route path="/admin/analytics"><AdminAnalytics /></Route>
+                <Route path="/admin/seo"><AdminSeo /></Route>
                 <Route path="/admin"><AdminDashboard /></Route>
                 <Route><NotFoundPage /></Route>
               </Switch>

@@ -25,6 +25,7 @@ export function AdminDashboard() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [selectedTag, setSelectedTag] = useState<string>("");
+  const [tagExpanded, setTagExpanded] = useState(false);
   const [viewStats, setViewStats] = useState<ViewStats | null>(null);
 
   useEffect(() => {
@@ -175,8 +176,8 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-[20px]">
 
         {/* ─── 文章列表 ─── */}
-        <div>
-          <div className="mb-[10px] flex items-center justify-between">
+        <div className="flex flex-col min-h-0 lg:max-h-[calc(100vh-260px)]">
+          <div className="mb-[10px] flex items-center justify-between shrink-0">
             <h2 className="text-[12px] font-medium text-muted-foreground/40 uppercase tracking-wider flex items-center gap-[5px]">
               {filter === "all" ? "所有文章" : filter === "published" ? "已发布" : "草稿箱"}
               {selectedTag && <><span className="text-muted-foreground/15">·</span><span className="text-cyan-400 normal-case">{selectedTag}</span></>}
@@ -186,7 +187,7 @@ export function AdminDashboard() {
 
           {/* 批量操作工具栏 */}
           {filteredPosts.length > 0 && (
-            <div className={`mb-[10px] flex items-center justify-between rounded-lg border border-border/15 bg-card/10 px-[14px] py-[8px] transition-all ${selectedSlugs.size > 0 ? "border-cyan-500/30 bg-cyan-500/5" : ""}`}>
+            <div className={`mb-[10px] flex items-center justify-between rounded-lg border border-border/15 bg-card/10 px-[14px] py-[8px] transition-all shrink-0 ${selectedSlugs.size > 0 ? "border-cyan-500/30 bg-cyan-500/5" : ""}`}>
               <div className="flex items-center gap-[10px]">
                 <button onClick={toggleSelectAll} className="text-muted-foreground/40 hover:text-cyan-400 transition-colors flex items-center gap-[6px]">
                   {selectedSlugs.size === filteredPosts.length ? <CheckSquare className="h-[14px] w-[14px] text-cyan-400" /> : <Square className="h-[14px] w-[14px]" />}
@@ -211,9 +212,9 @@ export function AdminDashboard() {
           )}
 
           {loading ? (
-            <div className="space-y-[6px]">{[1, 2, 3].map((i) => <div key={i} className="h-[72px] animate-pulse rounded-lg border border-border/10 bg-card/5" />)}</div>
+            <div className="space-y-[6px] shrink-0">{[1, 2, 3].map((i) => <div key={i} className="h-[72px] animate-pulse rounded-lg border border-border/10 bg-card/5" />)}</div>
           ) : filteredPosts.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border/20 py-[52px] text-center">
+            <div className="rounded-lg border border-dashed border-border/20 py-[52px] text-center shrink-0">
               <FileText className="mx-auto mb-[12px] h-[24px] w-[24px] text-muted-foreground/10" />
               <p className="text-[13px] text-muted-foreground/30 mb-[12px]">
                 {search || selectedTag ? "没有符合条件的文章" : "暂无文章"}
@@ -225,7 +226,8 @@ export function AdminDashboard() {
               )}
             </div>
           ) : (
-            <div className="space-y-[4px]">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-[4px] -mr-[4px] scrollbar-thin">
+              <div className="space-y-[4px]">
               {filteredPosts.map((post) => (
                 <div key={post.slug} className={`group relative flex items-center gap-[12px] rounded-lg border px-[14px] py-[12px] transition-all ${selectedSlugs.has(post.slug) ? "border-cyan-500/30 bg-cyan-500/5 text-cyan-400" : "border-border/12 bg-card/5 hover:border-border/35 hover:bg-card/20"}`}>
                   
@@ -263,12 +265,13 @@ export function AdminDashboard() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           )}
         </div>
 
         {/* ─── 右侧边栏：标签 + 热门 + SEO ─── */}
-        <div className="space-y-[14px]">
+        <div className="space-y-[14px] lg:sticky lg:top-[24px] lg:self-start">
 
           {/* SEO 健康状态 */}
           {posts.length > 0 && (() => {
@@ -336,8 +339,15 @@ export function AdminDashboard() {
           {/* 标签 */}
           {allTags.length > 0 && (
             <div>
-              <h3 className="mb-[8px] text-[10px] font-medium text-muted-foreground/30 uppercase tracking-wider">标签</h3>
-              <div className="flex flex-wrap gap-[4px]">
+              <div className="flex items-center justify-between mb-[8px]">
+                <h3 className="text-[10px] font-medium text-muted-foreground/30 uppercase tracking-wider">标签</h3>
+                {allTags.length > 8 && (
+                  <button onClick={() => setTagExpanded(!tagExpanded)} className="text-[10px] text-cyan-400/60 hover:text-cyan-400 transition-colors">
+                    {tagExpanded ? "收起" : `+${allTags.length - 8}`}
+                  </button>
+                )}
+              </div>
+              <div className={`flex flex-wrap gap-[4px] ${!tagExpanded ? "max-h-[64px] overflow-hidden" : ""}`}>
                 {allTags.map((tag) => {
                   const count = posts.filter((p) => p.tags.includes(tag)).length;
                   return (
